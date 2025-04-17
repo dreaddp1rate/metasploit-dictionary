@@ -1,0 +1,154 @@
+Exploit: A piece of code that uses a vulnerability present on the target.
+Vulnerability: A design, coding, or logic flaw affecting the target. The exploitation of a vulnerability can result in disclosing confidential information or allowing the attacker to execute code on the target system.
+Payload: Payloads are the code that will run on the target system.
+
+# Auxiliary
+Any supporting module, such as scanners, crawlers and fuzzers, can be found here. 
+/opt/metasploit-framework/embedded/framework/modules# tree -L 1 auxiliary/
+auxiliary/
+├── admin
+├── analyze
+├── bnat
+├── client
+├── cloud
+├── crawler
+├── docx
+├── dos
+├── example.py
+├── example.rb
+├── fileformat
+├── fuzzers
+├── gather
+├── parser
+├── pdf
+├── scanner
+├── server
+├── sniffer
+├── spoof
+├── sqli
+├── voip
+└── vsploit
+
+# Encoders
+Encoders will allow you to encode the exploit and payload in the hope that a signature-based AV will miss them.
+Signature-based AV and security solutions have a database of known threats. They detect threats by comparing suspicious files to this database and raise an alert if there is a match. Thus encoders can have a limited success rate as antivirus solutions can perform additional checks. 
+/opt/metasploit-framework/embedded/framework/modules# tree -L 1 encoders/
+encoders/
+├── cmd
+├── generic
+├── mipsbe
+├── mipsle
+├── php
+├── ppc
+├── ruby
+├── sparc
+├── x64
+└── x86
+
+# Evasion
+While encoders will encode the payload, they should not be considered a direct attempt to evade antivirus software. On the other hand, “evasion” modules will try that, with more or less success.
+/opt/metasploit-framework/embedded/framework/modules# tree -L 2 evasion/
+evasion/
+└── windows
+    ├── applocker_evasion_install_util.rb
+    ├── applocker_evasion_msbuild.rb
+    ├── applocker_evasion_presentationhost.rb
+    ├── applocker_evasion_regasm_regsvcs.rb
+    ├── applocker_evasion_workflow_compiler.rb
+    ├── process_herpaderping.rb
+    ├── syscall_inject.rb
+    ├── windows_defender_exe.rb
+    └── windows_defender_js_hta.rb
+
+# Exploits
+Exploits, neatly organized by target system.
+/opt/metasploit-framework/embedded/framework/modules# tree -L 1 exploits/
+exploits/
+├── aix
+├── android
+├── apple_ios
+├── bsd
+├── bsdi
+├── dialup
+├── example_linux_priv_esc.rb
+├── example.py
+├── example.rb
+├── example_webapp.rb
+├── firefox
+├── freebsd
+├── hpux
+├── irix
+├── linux
+├── mainframe
+├── multi
+├── netware
+├── openbsd
+├── osx
+├── qnx
+├── solaris
+├── unix
+└── windows
+
+# NOPs
+NOPs (No OPeration) do nothing, literally. They are represented in the Intel x86 CPU family with 0x90, following which the CPU will do nothing for one cycle. They are often used as a buffer to achieve consistent payload sizes.
+
+# Payloads
+Payloads are codes that will run on the target system.
+Exploits will leverage a vulnerability on the target system, but to achieve the desired result, we will need a payload. Examples could be; getting a shell, loading a malware or backdoor to the target system, running a command, or launching calc.exe as a proof of concept to add to the penetration test report. Starting the calculator on the target system remotely by launching the calc.exe application is a benign way to show that we can run commands on the target system.
+Running command on the target system is already an important step but having an interactive connection that allows you to type commands that will be executed on the target system is better. Such an interactive command line is called a "shell". Metasploit offers the ability to send different payloads that can open shells on the target system.
+/opt/metasploit-framework/embedded/framework/modules# tree -L 1 payloads/
+payloads/
+├── adapters
+├── singles
+├── stagers
+└── stages
+
+Adapters: An adapter wraps single payloads to convert them into different formats. For example, a normal single payload can be wrapped inside a Powershell adapter, which will make a single powershell command that will execute the payload.
+Singles (Inlines): A single payload has everything built in: the exploit and the malicious action (like a shell or command) all in one piece.
+Stagers: A small initial payload that’s just designed to connect back to the attacker, then download the real payload (aka the stage). It’s tiny so it fits into tight exploit space (like in a buffer overflow).
+Stages: Downloaded by the stager. This will allow you to use larger sized payloads. The main, full-featured payload that the stager downloads and runs such as a Meterpreter shell, a full reverse shell or a ransomware dropper.
+
+# Post
+Post modules will be useful on the final stage of the penetration testing process listed above, post-exploitation.
+/opt/metasploit-framework/embedded/framework/modules# tree -L 1 post/
+post/
+├── aix
+├── android
+├── apple_ios
+├── bsd
+├── firefox
+├── hardware
+├── linux
+├── multi
+├── networking
+├── osx
+├── solaris
+└── windows
+
+# CLI CLI CLI CLI CLI CLI
+Search
+This command will search the Metasploit Framework database for modules relevant to the given search parameter. You can conduct searches using CVE numbers, exploit names (eternalblue, heartbleed, etc.), or target system.
+
+# Parameters during exploits
+Parameters you will often use are:
+RHOSTS: “Remote host”, the IP address of the target system. A single IP address or a network range can be set. This will support the CIDR (Classless Inter-Domain Routing) notation (/24, /16, etc.) or a network range (10.10.10.x – 10.10.10.y). You can also use a file where targets are listed, one target per line using file:/path/of/the/target_file.txt, as you can see below.
+RPORT: “Remote port”, the port on the target system the vulnerable application is running on.
+PAYLOAD: The payload you will use with the exploit.
+LHOST: “Localhost”, the attacking machine (your AttackBox or Kali Linux) IP address.
+LPORT: “Local port”, the port you will use for the reverse shell to connect back to. This is a port on your attacking machine, and you can set it to any port not used by any other application.
+SESSION: Each connection established to the target system using Metasploit will have a session ID. You will use this with post-exploitation modules that will connect to the target system using an existing connection.
+You can override any set parameter using the set command again with a different value.
+You can clear any parameter value using the unset command.
+Clear all set parameters with the unset all command. --- > "unset all"
+setg ---> sets a parameter for all options | unset by "unsetg"
+
+# Exploiting
+Once all parameters are set it is time to launch the attack.
+exploit
+OPTIONAL
+exploit -z | this command will run the exploit and background the session as soon as it opens.
+Some modules support the check option. This will check if the target system is vulnerable without exploiting it.
+You can use the background command to background the session prompt and go back to the msfconsole prompt.
+Alternatively, CTRL+Z can be used to background sessions.
+The sessions command can be used from the msfconsole prompt or any context to see the existing sessions.
+To interact with any session, you can use the sessions -i command followed by the desired session number.
